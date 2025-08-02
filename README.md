@@ -248,8 +248,100 @@ make package/index
 ### 5. UCI system (Unified Configuration Interface)
 **UCI** là hệ thống cấu hình trung tâm cho tất cả các dịch vụ OpenWrt bao gồm **Network settings, Wireless configuration, Firewall rules, System services, Package configurations...**
 #### 5.1 Nguyên tắc chung
+Cấu hình trung tâm của OpenWrt gồm nhiều file nằm trong thư mục `/etc/config/`, mỗi file liên quan tới phần của hệ thống nó cấu hình. Có thể sửa config file bằng **text editor** hoặc dùng **CLI** của `uci`.
 
+Khi sửa config file, các dịch vụ bị ảnh hưởng phải được restart bằng lệnh `init.d` call. `Init.d` là thư mục chứa các **script khởi động và quản lý dịch vụ** trong OpenWrt:
+```text
+/etc/init.d/
+├── network      # Script quản lý mạng
+├── wireless     # Script quản lý Wi-Fi  
+├── firewall     # Script quản lý tường lửa
+├── dnsmasq      # Script quản lý DNS/DHCP
+├── dropbear     # Script quản lý SSH server
+└── ...          # Và nhiều script khác
+```
+**Init.d scripts** có vai trò như **thông dịch viên**:
+- Đọc **UCI config** từ `/etc/config/`
+- Chuyển đổi **UCI config** thành format mà **daemon** hiểu được
+- Start/stop/restart/reload/... các dịch vụ
+
+Một ví dụ về việc thay đổi **UCI config**, giả sử muốn thay đổi port của HTTP server từ 80 thành 8080, chúng ta thay đổi cấu hình trong file `etc/config/uhttpd`:
+```bash
+uci set uhttpd.main.listen_http='8080'
+uci commit uhttpd
+/etc/init.d/uhttpd restart
+```
+
+#### 5.2 Các config file
+Docs chính thức của OpenWrt em thấy có liệt kê hơn 50 config file khác nhay trong `/etc/config/`. Dưới đây là 1 số file cơ bản:
+```text
+/etc/config/
+├── network      # Cấu hình mạng
+├── wireless     # Cấu hình Wi-Fi  
+├── firewall     # Cấu hình tường lửa
+├── dnsmasq      # Cấu hình DNS/DHCP
+└── ...          # Và nhiều config file
+```
+
+#### 5.3 Cấu trúc các config file
+Gồm 1 hoặc nhiều `config`, còn gọi là section:
+```bash
+package 'example'                             # Tên gói cấu hình
+ 
+config 'example' 'test'                       # Bắt đầu 1 section
+        option   'string'      'some value'   # Định nghĩa tùy chọn đơn
+        option   'boolean'     '1'
+        list     'collection'  'first item'   # Định nghĩa danh sách nhiều giá trị
+        list     'collection'  'second item'
+```
+
+#### 5.4 Cú pháp lệnh sử dụng uci
+```bash
+# uci
+Usage: uci [<options>] <command> [<arguments>]
+
+Commands:
+	batch
+	export     [<config>]
+	import     [<config>]
+	changes    [<config>]
+	commit     [<config>]
+	add        <config> <section-type>
+	add_list   <config>.<section>.<option>=<string>
+	del_list   <config>.<section>.<option>=<string>
+	show       [<config>[.<section>[.<option>]]]
+	get        <config>.<section>[.<option>]
+	set        <config>.<section>[.<option>]=<value>
+	delete     <config>.<section>[.<option>]
+	rename     <config>.<section>[.<option>]=<name>
+	revert     <config>[.<section>[.<option>]]
+	reorder    <config>.<section>=<position>
+
+Options:
+	-c <path>  set the search path for config files (default: /etc/config)
+	-d <str>   set the delimiter for list values in uci show
+	-f <file>  use <file> as input instead of stdin
+	-m         when importing, merge data into an existing package
+	-n         name unnamed sections on export (default)
+	-N         don't name unnamed sections
+	-p <path>  add a search path for config change files
+	-P <path>  add a search path for config change files and use as default
+	-q         quiet mode (don't print error messages)
+	-s         force strict mode (stop on parser errors, default)
+	-S         disable strict mode
+	-X         do not use extended syntax on 'show'
+```
+
+Trong đó,
+- **config**: nhóm cấu hình chính như **network, system, firewall**. mỗi nhóm cấu hình sở hửu 1 file trong `etc/config/`.
+- **sections**: mỗi config file chia thành nhiều section. Mỗi section có thể **có tên** hoặc **không có tên**.
+- **types**: mỗi section có thể có type. Ví dụ **network config** có 4 section của type **interface** đó là **lan**, **wan**, **loopback**, **wan6**.
+- **options**: mỗi section có một số option, nơi mình sẽ cấu hình giá trị.
+- **values**: giá trị của option.
 
 ### 6. UBUS system (OpenWrt Micro Bus)
-
+**UBUS** là hệ thống **IPC** cho phép các daemon và ứng dụng trong OpenWrt giao tiếp với nhau, Ubus bao gồm nhiều phần:
+- **ubusd**: là daemon trung tâm (broker) của toàn bộ hệ thống UBUS. Nó như 1 broker - cung cấp 1 interface cho các daemon khác đăng ký vào nó để gửi tin nhắn. Interface này triển khai bằng cách sử dụng **Unix sockets** và sử dụng các **TLV messages**.
+- **libubus**: là client libarary đơn giản hóa việc phát triển phần mềm bằng ubus, cho phép apps và daemons kết nối và tương tác với ubusd
+- **Unix sockets**: thay vì sử dụng TCP/UDP socket để tối ưu hóa trong cùng 1 hệ thống
 ### 7. PROCD (Process Management Daemon)
