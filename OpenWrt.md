@@ -124,20 +124,21 @@ Commands:
 	clean:             Remove downloaded/generated files.
 ```
 
-### 3. Các thư mục được tạo ra trong quá trình Build System
-#### 3.1 Thư mục `tmp/`
+## 3. Các thư mục được tạo ra trong quá trình Build System
+### 3.1 Thư mục `tmp/`
 Được tạo ra tự động từ đầu, ngay khi config hoặc build bất kỳ gì. Vai trò của nó để lưu trữ tạm thời các file cache và 1 số info khác => giúp tăng tốc build.
 
-#### 3.2 Thư mục `feeds/`
+### 3.2 Thư mục `feeds/`
 Trong `package/` chỉ chứa 1 số `core-package` để đảm bảo hệ thống có thể build tối thiểu. Tại `feeds/` mới là nơi chứa toàn bộ hàng nghìn recipe cho các package mở rộng. Ví dụ như `feeds/packages/`, `feeds/luci/`, `feeds/routing/`, `feeds/telepony/` sẽ chứa các recipe được tải/cập nhật về `feeds/` từ các repo được khai báo trong file `feeds.conf.default`. Được cập nhật và tải về qua 2 cmd:
 
 ```
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 ```
-#### 3.3 Thư mục `dl/`
-Được tạo khi chạy `make download`, nơi lưu trữ (cache) tất cả các source code của kernel, toolchain và package mà mình sẽ compile trong quá trình **Build system**. Bên trong `dl` là các file nén (**.taz.gz, .taz.xz**) chứa source code. Khác với `feed/` ở chỗ, `dl/` chứa **nguyên liệu thô** `feed/` chứa **hướng dẫn sử dụng nguyên liệu thô** đó
-#### 3.4 Thư mục `build_dir/`
+### 3.3 Thư mục `dl/`
+Được tạo khi chạy `make download`, nơi lưu trữ (cache) tất cả các source code của kernel, toolchain và package mà mình sẽ compile trong quá trình **Build system**. Bên trong `dl` là các file nén (**.taz.gz, .taz.xz**) chứa source code. Khác với `feed/` ở chỗ, `dl/` chứa **nguyên liệu thô** `feed/` chứa **hướng dẫn sử dụng nguyên liệu thô** đó.
+
+### 3.4 Thư mục `build_dir/`
 Được tạo ra khi bắt đầu quá trình compile **host/target/toolchain**. Đây là nơi giải nén, patch, config, compile các source code trong OpenWrt (host, toolchain và target). Trong `build_dir` có các thư mục con:
 - Thư mục `build_dir/host`: được tạo ra bởi lệnh
 ```bash
@@ -157,16 +158,16 @@ make package/compile
 hoặc khi `make world` bước vào giai đoạn sau `prepare` để build kernel, rootfs, các package cho **target system**.
 
 
-#### 3.5 Thư mục `staging_dir/`
+### 3.5 Thư mục `staging_dir/`
 Được tạo song song với `build_dir/`, nơi tập kết và tổ chức tất cả các sản phẩm đã build xong, sẵn sàng cho các bước tiếp theo trong quá trình build hoặc đóng gói.
-#### 3.6 Thư mục `bin/`
+### 3.6 Thư mục `bin/`
 Được tạo ra sau cùng, chỉ khi build thành công firmware cuối dùng (`make world`). Chứa **firmware images** và **package repository** (.ipk files)
-#### 3.7 Các file key
+### 3.7 Các file key
 Gồm các file như `key-build`, `key-build.pub`, `key-build.ucert`, `key-build.ucert.revoke`
 
 
-### 4. Các bước để Build System
-#### Bước 1: Setup và Configuration basic
+## 4. Các bước để Build System
+### Bước 1: Setup và Configuration basic
 ```bash
 # Clone source code
 git clone https://git.openwrt.org/openwrt/openwrt.git
@@ -179,7 +180,7 @@ git checkout openwrt-21.02
 ```
 **Kết quả**: Tạo thư mục `feeds/` chứa metadata các package.
 
-#### Bước 2: Configuration target
+### Bước 2: Configuration target
 ```bash
 # Configure target
 make menuconfig 
@@ -194,17 +195,17 @@ make menuconfig
 
 **Kết quả**: File `.config` được tạo với cấu hình build. Tạo thư mục `tmp/`
 
-#### Bước 3: Build Process
+### Bước 3: Build Process
 ```bash
 make defconfig download clean world
 ```
 Dưới đây là chi tiết quy trình build
-##### Phase 3.1: Update, dowload và clean
+#### Phase 3.1: Update, dowload và clean
 - `make defconfig`: Được định nghĩa trong `include/toplevel.mk`, phục vụ cho việc tạo hoặc update `.config` file dựa trên **default configuration (defconfig)** cho **target** đã chọn (điền tùy chọn còn thiếu và gỡ bỏ mục đã lỗi thời). Ở đây `tmp/` được mở rộng. => Hoàn thành việc Configuration.
 - `make download`: Được định nghĩa trong `include/toplevel.mk`, dùng để tải tất cả source code (**kernel, toolchain, packages**) về thư mục `dl/` trước khi compile => giúp mình có thể build ngoại tuyến. Tại đây `dl/` được tạo.
 - `make clean`: Được định nghĩa trong **root Makefile**, sử dụng để xóa toàn bộ sản phẩm đã compile cũ (`bin/`, `build_dir/`...) nhưng giữ lại toolchain và `dl/` => là bước dọn dẹp để đảm bảo build mới không dùng nhầm cái cũ.
 
-##### Phase 3.2: Build
+#### Phase 3.2: Build
 ```bash
 make world
 ``` 
@@ -247,9 +248,63 @@ make package/index
 - `bin/target`: Firmware images (.bin files)
 - `bin/package`: Package repository (.ipk files + index)
 
-### 5. UCI system (Unified Configuration Interface)
+## 5. Upgrading OpenWrt firmware
+### 5.1 Upgrading using CLI
+Thiết bị phải được cài đặt OpenWrt firmware cũ hơn để đủ điều kiện áp dụng quy trình **sysupgrade** này.
+
+Ở đây, em tự build firmware từ source repo của OpenWrt. Sau khi build thành công, firmware image nằm trong thư mục `bin/targets/{target_system}/{subtarget}` có dạng file `*-sysupgrade.bin`. Quy trình nạp firmware cụ thể trên board AP 6 Mediatek Ramips MT7620 em sử dụng SSH tới AP thông qua CLI. Chuẩn bị phần cứng:
+- Dây Console Serial: Điều khiển AP trực tiếp.
+- Dây Ethernet: Truyền file firmware qua SCP.
+- Dây nguồn: Cấp điện cho cho AP.
+
+**1. Lệnh SCP**
+```bash
+# Copy file firmware từ máy tính local tới AP qua SSH
+scp -O -P 62222 openwrt-ramips-mt7620-aigale_ai-br100-squashfs-sysupgrade.bin root@192.168.2.1:/tmp
+```
+Phân tích tham số:
+- `scp`: Secure Copy Protocol - công cụ copy file qua SSH
+- `-0`: Sử dụng protocol SCP cũ (legacy) thay vì SFTP mới (mặc định), vì một số thiết bị không hỗ trợ đầy đủ SFTP
+- `P 62222`: Kết nối SSH qua port 62222 (thay vì port 22 mặc định) => giúp bảo mật hơn
+- `openwrt-ramips-mt7620-aigale_ai-br100-squashfs-sysupgrade.bin`: File firmware nguồn sau khi build
+- `root@192.168.2.1`: Đăng nhập user root trên IP 192.168.2.1 (IP của AP)
+- `:/tmp`: Thư mục đích trên AP để lưu file
+
+**2. Lệnh Minicom**
+```bash
+# Kết nối Serial console để điều khiển AP trực tiếp
+sudo minicom -b 115200 -D /dev/ttyUSB0
+```
+Phân tích tham số:
+- `sudo`: Chạy với quyền admin
+- `minicom`: Công cụ terminal emulator cho serial
+- `-b 115200`: Baudrate 115200 bps (tốc độ truyền dữ liệu serial), tùy thuộc vào loại thiết bị sẽ có baudrate khác nhau, chọn sai baudrate sẽ ra toàn ký tự lạ.
+- `-D /dev/ttyUSB0`: Device file của USB-to-Serial adapter. Khi cắp USB-to-Serial apdapter, Linux tự động tạo device file.
+
+**3. Các lệnh thực hiện trên AP**
+
+Sau khi kết nối với AP thành công, em thực hiện lệnh trên AP như sau:
+```bash
+root@louise:~# cd /tmp/ # Vào thư mục lưu file tạm thời vừa copy
+root@louise:/tmp# sysupgrade openwrt-ath79-generic-8dev_carambola2-squashfs-sysupgrade.bin #
+```
+Xảy ra lỗi:
+```text
+=> Thu Jan  1 07:25:04 +07 1970 upgrade: Device mediatek,mt7981-spim-snand-gsw-rfb not supported by this image
+Thu Jan  1 07:25:04 +07 1970 upgrade: Supported devices: 8dev,carambola2 carambola2
+sh: out of range
+Invalid image type.
+Image check failed.
+```
+
+=> AP hiện tại em dùng là `mediatek, mt7981-spim-snand-gsw-rfb`, mà firmware để nạp là dành cho `8dev,carambola2 carambola2`. Em tìm target khác thì không có đúng của loại AP hiện tại. Em có hỏi các anh thì các anh bảo do thiết bị của bên mình một số metadata riêng nên không dùng được như thế với lại con AP 6 bị sao ý ạ nma em quên mất lý do :>, rồi bảo em build lại thử trên con AP 5 xem thế nào, em đã build lại nhưng em chưa nạp thử ạ.
+
+### 5.2 Upgrading using LuCI
+Em chưa tìm hiểu phần này. Tài liệu sẽ tìm hiểu nằm ở cre: https://openwrt.org/docs/guide-quick-start/sysupgrade.luci
+
+## 6. UCI system (Unified Configuration Interface)
 **UCI** là hệ thống cấu hình trung tâm cho tất cả các dịch vụ OpenWrt bao gồm **Network settings, Wireless configuration, Firewall rules, System services, Package configurations...**
-#### 5.1 Nguyên tắc chung
+### 6.1 Nguyên tắc chung
 Cấu hình trung tâm của OpenWrt gồm nhiều file nằm trong thư mục `/etc/config/`, mỗi file liên quan tới phần của hệ thống nó cấu hình. Có thể sửa config file bằng **text editor** hoặc dùng **CLI** của `uci`.
 
 Khi sửa config file, các dịch vụ bị ảnh hưởng phải được restart bằng lệnh `init.d` call. `Init.d` là thư mục chứa các **script khởi động và quản lý dịch vụ** trong OpenWrt:
@@ -274,8 +329,8 @@ uci commit uhttpd
 /etc/init.d/uhttpd restart
 ```
 
-#### 5.2 Các config file
-Docs chính thức của OpenWrt em thấy có liệt kê hơn 50 config file khác nhay trong `/etc/config/`. Dưới đây là 1 số file cơ bản:
+### 6.2 Các config file
+Docs chính thức của OpenWrt em thấy có liệt kê hơn 60 config file khác nhay trong `/etc/config/`. Dưới đây là 1 số file cơ bản:
 ```text
 /etc/config/
 ├── network      # Cấu hình mạng
@@ -285,7 +340,7 @@ Docs chính thức của OpenWrt em thấy có liệt kê hơn 50 config file kh
 └── ...          # Và nhiều config file
 ```
 
-#### 5.3 Cấu trúc các config file
+### 6.3 Cấu trúc các config file
 Gồm 1 hoặc nhiều `config`, còn gọi là section:
 ```bash
 package 'example'                             # Tên gói cấu hình
@@ -297,7 +352,7 @@ config 'example' 'test'                       # Bắt đầu 1 section
         list     'collection'  'second item'
 ```
 
-#### 5.4 Cú pháp lệnh sử dụng uci
+### 6.4 Cú pháp lệnh sử dụng uci
 ```bash
 # uci
 Usage: uci [<options>] <command> [<arguments>]
@@ -341,10 +396,191 @@ Trong đó,
 - **options**: mỗi section có một số option, nơi mình sẽ cấu hình giá trị.
 - **values**: giá trị của option.
 
-### 6. UBUS system (OpenWrt Micro Bus)
+## 7. UBUS system (OpenWrt Micro Bus)
 **UBUS** là hệ thống **IPC** cho phép các daemon và ứng dụng trong OpenWrt giao tiếp với nhau, Ubus bao gồm nhiều phần:
 - **ubusd**: là daemon trung tâm (broker) của toàn bộ hệ thống UBUS. Nó như 1 broker - cung cấp 1 interface cho các daemon khác đăng ký vào nó để gửi tin nhắn. Interface này triển khai bằng cách sử dụng **Unix sockets** và sử dụng các **TLV messages**.
 - **libubus**: là client libarary đơn giản hóa việc phát triển phần mềm bằng ubus, cho phép apps và daemons kết nối và tương tác với ubusd
 - **Unix sockets**: thay vì sử dụng TCP/UDP socket để tối ưu hóa trong cùng 1 hệ thống
-### 7. PROCD (Process Management Daemon)
->>>>>>> 9c6052ce02b954ef7ec3c4ba371ddcb0552702c2
+
+### 7.1 Connection model of UBUS
+Ubus sử dụng broker pattern làm kiến trúc của nó. Có 3 thành phần để thực hiện IPC thông qua Ubus:
+- **ubus daemon**: Là broker nằm giữa **ubus server object** và **ubus client object**, dùng để quản lý các registration và forwards messages giữa server và client object.
+- **ubus server object**: thường là interface/daemon của phần mềm nào đó. Đăng ký với **ubus daemon** với các methods (procedures) được cung cấp cho client. Server objects và các methods đã đăng ký có thể được tra cứu và gọi bởi client methods.
+- **ubus client object**: Người gọi của server objects và methods.
+
+![Diagram of ubus](ubus.png)
+
+## 7.2 Roles in UBUS
+ Có nhiều vai trò khác nhau trong các quy trình IPC của Ubus:
+- **Object**: Process đăng ký với ubusd, bao gồm service và service callers.
+- **Method**: Procedure được cung cấp bởi objects. Object có thể cung cấp nhiều methods khác nhau như một server.
+- **Data**: Thông tin ở định dạng JSON được mang bởi request hoặc reply.
+
+```text
+ubus/
+├── Object_1      
+|   ├── Method_1 
+|	|	├── Data_1_interger   
+|	|	├── Data_2_bool
+|	|	└── Data_3_string        
+|   ├── Method_2
+|	|	└── Data_1_interger   
+|   └── Method_3
+├── Object_2     
+└── Object_3      
+    └── Method_1 
+		└── Data_1_interger   
+```
+
+Ví dụ về danh sách object trên Ubus, methods và data signature liên quan của `system`:
+
+![alt text](image.png)
+
+Bên cạnh đó, có 3 vai trò khác trong Ubus:
+- **Subscriber**: Object đăng ký với target service object. Subscribers sẽ được thông báo khi target service gửi notification đến ubusd.
+- **Event**: Event trong Ubus được xác định bởi một chuỗi gọi là `event pattern`. Event có thể được đăng ký bởi object. Object có thể gửi dữ liệu đến ubusd với event pattern.
+- **Event registrant**: Object đăng ký với event có `event pattern`. Ubusd chuyển tiếp dữ liệu đến event registrant khi nhận được tin nhắn với `event pattern` khớp.
+
+### 7.3 Approaches of data flow sequence of UBUS
+Có 3 loại sơ đồ truyền dữ liệu để triển khai IPC trong Ubus:
+- **Invoke (One-to-one)**: Gửi dữ liệu hoặc requests đến object cụ thể.
+
+![alt text](image-1.png)
+
+Data flow của invoke:
+- 0. Khởi động UBUS
+- 1. Thiết lập kết nối của Process 1
+- 2. Đăng ký Process 1 object với method được cung cấp
+- 3. Thiết lập kết nối của Process 2
+- 4. Tra cứu object id
+- 5. Request với object id, method, và dữ liệu cần thiết (msg)
+- 6. Hủy đăng ký object
+
+![alt text](invoke.png)
+
+- **Subcribe/Notify (One-to-many)**: Gửi dữ liệu đến nhiều subscribers đã đăng ký cùng object.
+
+![alt text](image-2.png)
+
+Data flow của invoke:
+- 0. Khởi động UBUS
+- 1. Thiết lập kết nối của Process 1
+- 2. Đăng ký Process 1 object với method được cung cấp
+- 3. Thiết lập kết nối của Process 2
+- 4. Tra cứu object id
+- 5. Client 3 subscribe với object id
+- 7. Quá trình notification
+- 8. Client 3 unsubscribe với object id
+
+![alt text](subscribe.png)
+
+- **Event boardcast (One-to-many)**: Gửi dữ liệu đến nhiều listeners của cùng `event pattern`
+
+
+
+![alt text](image-3.png)
+
+Data flow của invoke:
+- 0. Khởi động UBUS
+- 1. Thiết lập kết nối
+- 2. Receivers đăng ký với ubus event handler(objid:1) với event pattern quan tâm
+- 3. Sender gửi dữ liệu đến ubus event handler(objid:1) với event pattern. Ubus event handler broadcast dữ liệu đến receivers đã đăng ký với cùng event pattern.
+
+![alt text](event.png)
+
+#### 7.4 UBUS tools
+OpenWrt cung cấp 3 công cụ để truy cập ubus
+- Command-line ubus tool
+- C library libubus
+- Ubus Lua module
+
+**Command-line ubus tool**
+
+Dưới đây là giải thích về các lệnh của nó:
+
+```bash
+# ubus
+Usage: ubus [<options>] <command> [arguments...]
+Options:
+ -s <socket>:           #Set the unix domain socket to connect to
+ -t <timeout>:          #Set the timeout (in seconds) for a command to complete
+ -S:                    #Use simplified output (for scripts)
+ -v:                    #More verbose output
+ -m <type>:             #(for monitor): include a specific message type
+                        #(can be used more than once)
+ -M <r|t>               #(for monitor): only capture received or transmitted traffic
+
+Commands:
+ - list [<path>]                        #List objects
+ - call <path> <method> [<message>]     #Call an object method
+ - listen [<path>...]                   #Listen for events
+ - send <type> [<message>]              #Send an event
+ - wait_for <object> [<object>...]      #Wait for multiple objects to appear on ubus
+ - monitor                              #Monitor ubus traffic
+
+ ```
+
+**Library libubus**
+- Function cho object registration
+- Function cho request
+- Function cho subscription
+- Function cho event
+
+## 8. OpenWrt Boot Process
+### 8.1 Quy trình Boot tóm tắt
+
+1. Bootloader cấu hình đủ phần cứng cấp thấp để đọc kernel từ flash, truyền kernel command-line và nhảy vào nó.
+2. Kernel khởi tạo tất cả driver phần cứng được build trực tiếp vào image.
+3. Kernel mount root filesystem.
+4. Kernel khởi động `init process` (PID 1) - đối với OpenWrt, init process là `procd`.
+5. `procd` đọc `/etc/inittab/` và thực thi tất cả script từ `/etc/rc.d/S*`
+
+### 8.2 Chi tiết từng giai đoạn
+
+#### Giai đoạn 1: Bootloader
+
+1. Bootloader trên flash được thực thi.
+2. Bootloader thực hiện POST (Power-On Self Test), đây là khởi tạo phần cứng cấp thấp.
+3. Bootloader giải nén Kernel image từ **flash storage** vào **main memory** (RAM).
+4. Bootloader thực thi Kernel với tùy chọn `init = /etc/preinit`.
+
+#### Giai đoạn 2: Kernel
+
+1. Kernel tiếp tục bootstrap chính nó và thực hiện command/op-code `start_kernel`.
+2. Kernel quét `mtd rootfs` partition để tìm `valid superblock` và mount `SquashFS` partition (chứa `/etc`).
+3. `/etc/preinit` thiết lập pre-initialization (tạo thư mục, mount fs, `/proc`, `/sys`,...).
+4. Kernel mount bất kỳ partition nào khác dưới rootfs.
+5. Nếu `INITRAMFS` không được định nghĩa, gọi `/sbin/init` - mẹ của tất cả processes (**nó sẽ được thay thế bằng `/sbin/procd` sau này**).
+6. Cuối cùng, một số kernel thread trở thành userspace `init` process.
+
+#### Giai đoạn 3: Init
+
+Userspace bắt đầu khi kernel mount rootfs và chương trình đầu tiên chạy (chương trình mặc định là `/sbin/init`).
+
+1. Init đọc `/etc/inittab` để tìm `sysinit` entry.
+2. Init gọi `/etc/init.d/rcS S boot`.
+3. rcS thực thi các symlinks đến actual startup scripts nằm trong `/etc/rc.d/S##xxxxxx` với tùy chọn `start`.
+4. Sau khi rcS hoàn thành, hệ thống sẽ chạy.
+
+### 8.3 Một số scripts
+
+**Preinit**
+
+Preinit đưa hệ thống từ raw kernel đến sẵn sàng cho multiuser. Để làm được điều đó, nó thực hiện các tác vụ sau:
+
+1. Sources `/etc/functions.sh` và `/lib/functions/boot.sh` cho các functions chung để boot/mount.
+2. Mount các filesystems kernel thiết yếu như `procfs`.
+3. Khởi tạo device tree `/dev`.
+4. Khởi tạo console
+5. Cung cấp cho user để vào chế độ hoạt động đặc biệt gọi là **failsafe**.
+6. Mount root filesystem.
+7. Trở thành `init` và chuyển vào chế độ multiuser.
+
+**`procd`**
+
+`procd` là daemon quản lý process mới của OpenWrt được viết bằng C. Nó theo dõi các processes khởi động từ init scripts (thông qua ubus calls). Lúc boot, Linux kernel khởi động `/sbin/init` như process người dùng đầu tiên, process này chia thành 2 bước:
+
+- `/sbin/init` (bước preinit): partition chỉ đọc trong flashed image.
+- `/sbin/procd` (bước chính): partition flash có thể ghi.
+
+`procd` khởi động với pid 1 đảm nhận nhiều vai trò: service manager, hotplug events handler.
